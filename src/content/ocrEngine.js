@@ -1,45 +1,60 @@
 /**
  * ocrEngine.js
- * Wraps Tesseract.js for browser-compatible OCR text extraction.
- *
- * Design decisions:
- *  - We create ONE persistent worker and reuse it (loading the model is expensive)
- *  - We only load the worker on first use (lazy init)
- *  - We provide a progress callback for the UI spinner
- *  - We clean up extracted text (remove junk characters, collapse whitespace)
+ * Wraps Tesseract.js behind an invisible sandbox iframe.
+ * Bypass for strict CSP environments like YouTube.
  */
-import { createWorker } from 'tesseract.js';
 
-let _worker = null;
-let _isInitializing = false;
+let _iframe = null;
 let _initPromise = null;
+let _messageIdCounter = 0;
+const _pendingResolvers = {};
 
 /**
- * Lazy-initializes the Tesseract worker. Reuses it across calls.
+ * Injects the hidden sandbox iframe into the page.
  */
-async function getWorker() {
-  if (_worker) return _worker;
+async function getIframe() {
+  if (_iframe) return _iframe;
+  if (_initPromise) return _initPromise;
 
-  // Prevent race conditions if called multiple times before init finishes
-  if (_isInitializing) return _initPromise;
+  _initPromise = new Promise((resolve) => {
+    console.log('[OCR] Injecting Sandbox iframe...');
+    const iframe = document.createElement('iframe');
+    iframe.id = 'yt-ocr-sandbox';
+    iframe.src = chrome.runtime.getURL('src/content/ocrFrame.html');
+    iframe.style.display = 'none';
 
-  _isInitializing = true;
-  _initPromise = (async () => {
-    console.log('[OCR] Initializing Tesseract worker...');
-    const worker = await createWorker('eng', 1, {
-      logger: (m) => {
-        if (m.status === 'recognizing text') {
-          // Emit progress event for the UI
-          const event = new CustomEvent('ocr-progress', { detail: m.progress });
-          document.dispatchEvent(event);
+    iframe.onload = () => {
+      console.log('[OCR] Sandbox ready.');
+      _iframe = iframe;
+      resolve(iframe);
+    };
+
+    document.body.appendChild(iframe);
+  });
+
+  // Listen for messages from the iframe
+  window.addEventListener('message', (event) => {
+    // Only trust our own extension origin
+    if (!event.origin.startsWith('chrome-extension://')) return;
+
+    const data = event.data;
+    if (!data) return;
+
+    if (data.type === 'OCR_PROGRESS') {
+      const pEvent = new CustomEvent('ocr-progress', { detail: data.progress });
+      document.dispatchEvent(pEvent);
+    } else if (data.type === 'OCR_RESULT') {
+      const resolver = _pendingResolvers[data.messageId];
+      if (resolver) {
+        if (data.success) {
+          resolver.resolve(data.text);
+        } else {
+          resolver.reject(new Error(data.error));
         }
+        delete _pendingResolvers[data.messageId];
       }
-    });
-    _worker = worker;
-    _isInitializing = false;
-    console.log('[OCR] Worker ready');
-    return worker;
-  })();
+    }
+  });
 
   return _initPromise;
 }
@@ -50,40 +65,26 @@ async function getWorker() {
  * @returns {Promise<string>} cleaned extracted text
  */
 export async function extractText(imageDataUrl) {
-  const worker = await getWorker();
+  const iframe = await getIframe();
+  const messageId = ++_messageIdCounter;
 
-  const { data } = await worker.recognize(imageDataUrl);
-  const rawText = data.text || '';
+  return new Promise((resolve, reject) => {
+    _pendingResolvers[messageId] = { resolve, reject };
 
-  return cleanText(rawText);
+    iframe.contentWindow.postMessage({
+      type: 'EXTRACT_TEXT',
+      messageId,
+      imageDataUrl
+    }, chrome.runtime.getURL(''));
+  });
 }
 
-/**
- * Cleans OCR output: removes junk, collapses whitespace, trims.
- */
-function cleanText(raw) {
-  return raw
-    // Remove non-printable characters except newlines
-    .replace(/[^\x20-\x7E\n\r\t]/g, '')
-    // Collapse multiple spaces into one
-    .replace(/[ \t]+/g, ' ')
-    // Collapse 3+ newlines into 2
-    .replace(/\n{3,}/g, '\n\n')
-    // Trim each line
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .join('\n')
-    .trim();
-}
-
-/**
- * Terminates the worker to free memory. Call when the extension is done.
- */
 export async function terminateOCR() {
-  if (_worker) {
-    await _worker.terminate();
-    _worker = null;
-    console.log('[OCR] Worker terminated');
+  if (_iframe) {
+    _iframe.remove();
+    _iframe = null;
+    _initPromise = null;
+    console.log('[OCR] Sandbox iframe removed.');
   }
 }
+
