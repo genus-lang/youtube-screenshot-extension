@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Screenshot Notes</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="popup-container">
+
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="popup-brand">
+        <span class="popup-logo">📸</span>
+        <div>
+          <h1 class="popup-title">Screenshot Notes</h1>
+          <p class="popup-subtitle">YouTube Study Tool</p>
+        </div>
+      </div>
+      <button id="btn-settings" class="icon-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">🎬</span>
+        <div class="stat-info">
+          <span id="stat-videos" class="stat-value">0</span>
+          <span class="stat-label">Videos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📷</span>
+        <div class="stat-info">
+          <span id="stat-screenshots" class="stat-value">0</span>
+          <span class="stat-label">Screenshots</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📝</span>
+        <div class="stat-info">
+          <span id="stat-notes" class="stat-value">0</span>
+          <span class="stat-label">Notes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto Mode Toggle -->
+    <div class="auto-mode-section">
+      <div class="auto-mode-info">
+        <h3 class="section-title" style="margin-bottom:2px;">Smart Auto Mode</h3>
+        <p class="auto-mode-desc">Detects slide changes and captures automatically</p>
+      </div>
+      <button id="btn-toggle-auto" class="btn btn-auto">
+        <span class="auto-btn-dot"></span>
+        <span id="auto-btn-text">Enable</span>
+      </button>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section">
+      <h3 class="section-title">Recent Videos</h3>
+      <div id="recent-list" class="recent-list">
+        <p class="empty-state">No screenshots yet. Open a YouTube video and click 📸!</p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button id="btn-generate-pdf" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Generate PDF</span>
+      </button>
+      <button id="btn-clear-data" class="btn btn-danger-ghost">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <span>Clear All Data</span>
+      </button>
+    </div>
+
+    <!-- Status Toast -->
+    <div id="popup-toast" class="popup-toast hidden"></div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirm-overlay" class="confirm-overlay hidden">
+      <div class="confirm-card">
+        <h3>⚠️ Clear All Data?</h3>
+        <p>This will permanently delete all screenshots and notes across every video. This cannot be undone.</p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="btn btn-ghost-sm">Cancel</button>
+          <button id="confirm-delete" class="btn btn-danger-sm">Delete Everything</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
