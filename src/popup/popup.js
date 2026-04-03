@@ -9,6 +9,7 @@
  */
 import { getAllData, getTotalScreenshotCount, getAllNotes, clearAllData } from '../storage/storage.js';
 import { generateFullPDF } from '../export/pdfExport.js';
+import { exportToOneNote } from '../export/onenoteExport.js';
 import './popup.css';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statNotes       = document.getElementById('stat-notes');
   const recentList      = document.getElementById('recent-list');
   const btnGeneratePDF  = document.getElementById('btn-generate-pdf');
+  const btnExportOneNote= document.getElementById('btn-export-onenote');
   const btnClearData    = document.getElementById('btn-clear-data');
   const btnSettings     = document.getElementById('btn-settings');
   const confirmOverlay  = document.getElementById('confirm-overlay');
@@ -122,6 +124,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnGeneratePDF.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         <span>Generate PDF</span>`;
+    }
+  });
+
+  // =====================
+  // Export OneNote
+  // =====================
+  btnExportOneNote.addEventListener('click', async () => {
+    btnExportOneNote.disabled = true;
+    const oldHtml = btnExportOneNote.innerHTML;
+    btnExportOneNote.innerHTML = '<span class="spinner"></span> Syncing...';
+    showToast('info', '☁️ Uploading to Microsoft OneNote...');
+
+    try {
+      await exportToOneNote();
+      showToast('success', '✅ Successfully pushed to OneNote!');
+    } catch (err) {
+      console.error('OneNote export failed:', err);
+      // Let the user know if it's an auth error vs a network error
+      showToast('error', `❌ ${err.message}`);
+      if (err.message.includes('Not connected')) {
+        setTimeout(() => chrome.runtime.openOptionsPage(), 2000);
+      }
+    } finally {
+      btnExportOneNote.disabled = false;
+      btnExportOneNote.innerHTML = oldHtml;
     }
   });
 
