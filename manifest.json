@@ -3,7 +3,7 @@
   "name": "YouTube Screenshot Notes",
   "version": "1.0",
   "description": "Smart screenshot notes tool",
-  "permissions": ["storage", "activeTab", "scripting", "alarms", "tabs"],
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting", "alarms", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "src/background/background.js"
