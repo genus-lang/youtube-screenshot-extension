@@ -5,7 +5,6 @@
  * and an "Extract Text" button that uses Tesseract OCR to auto-fill notes.
  */
 import { getVideoElement } from './videoController.js';
-import { extractText } from './ocrEngine.js';
 
 let _wasPlaying = false;
 
@@ -145,11 +144,13 @@ export function showNoteUI(frameData, timestamp, wasPlaying) {
   // --- Save handler ---
   const doSave = (noteText) => {
     const { videoId, videoTitle } = getVideoMeta();
-    chrome.runtime.sendMessage({
-      action: 'SAVE_SCREENSHOT',
-      payload: { videoId, videoTitle, frameData, timestamp, noteText }
-    }, (resp) => {
-      showSavedToast();
+    // Read active subject first, then save with one message
+    chrome.storage.local.get(['active_subject'], (res) => {
+      const subject = res.active_subject || 'General';
+      chrome.runtime.sendMessage({
+        action: 'SAVE_SCREENSHOT',
+        payload: { videoId, videoTitle, frameData, timestamp, noteText, subject }
+      }, () => showSavedToast());
     });
   };
 
@@ -176,24 +177,28 @@ export function showNoteUI(frameData, timestamp, wasPlaying) {
     const bar = document.getElementById('yt-ocr-progress-bar');
     const noteField = document.getElementById('yt-modal-note');
 
-    // Show progress
     prog.classList.remove('yt-modal-hidden');
     bar.style.width = '0%';
     freshOcr.disabled = true;
     ocrText.textContent = 'Extracting...';
 
     try {
-      const text = await extractText(frameData);
+      // Route OCR to background worker — bypasses YouTube's strict CSP
+      const result = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          { action: 'EXTRACT_OCR', payload: { imageDataUrl: frameData } },
+          resolve
+        );
+      });
 
-      if (text && text.length > 0) {
-        // Append to existing note content (don't overwrite user's typing)
+      if (result && result.success && result.text && result.text.length > 0) {
         const existing = noteField.value.trim();
         noteField.value = existing
-          ? `${existing}\n\n--- OCR Extracted ---\n${text}`
-          : text;
+          ? `${existing}\n\n--- OCR Extracted ---\n${result.text}`
+          : result.text;
         noteField.scrollTop = noteField.scrollHeight;
       } else {
-        noteField.placeholder = 'No text detected in this frame.';
+        noteField.placeholder = result?.error || 'No text detected in this frame.';
       }
     } catch (err) {
       console.error('[OCR] Extraction failed:', err);

@@ -15,9 +15,7 @@
  */
 import { getVideoElement } from './videoController.js';
 import { captureFrame } from './canvasCapture.js';
-import { saveScreenshot } from '../storage/storage.js';
 import { formatTime } from '../utils/helpers.js';
-import { extractText } from './ocrEngine.js';
 
 // =====================
 // State
@@ -180,17 +178,14 @@ function compareFrames(prev, curr) {
 async function onSlideChangeDetected(video) {
   console.log('[YT Screenshot Notes] 🎯 Slide change detected!');
 
-  // Activate cooldown to prevent rapid-fire captures
   _cooldownActive = true;
   setTimeout(() => { _cooldownActive = false; }, CONFIG.COOLDOWN_MS);
 
-  // Capture full-quality frame
   const frameData = captureFrame(video, 0.9);
   if (!frameData) return;
 
   const timestamp = formatTime(video.currentTime);
 
-  // Extract video metadata
   let videoId = 'unknown';
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('v')) videoId = urlParams.get('v');
@@ -203,21 +198,32 @@ async function onSlideChangeDetected(video) {
     videoTitle = titleEl.textContent.trim();
   }
 
-  // Try OCR to extract slide text for a richer note
   let noteText = `[Auto] Slide change detected at ${timestamp}`;
+
+  // Try OCR via background worker (no CSP issues)
   try {
-    const ocrText = await extractText(frameData);
-    if (ocrText && ocrText.length > 5) {
-      noteText = `[Auto @ ${timestamp}]\n${ocrText}`;
+    const ocrResult = await new Promise(resolve => {
+      chrome.runtime.sendMessage(
+        { action: 'EXTRACT_OCR', payload: { imageDataUrl: frameData } },
+        resolve
+      );
+    });
+    if (ocrResult && ocrResult.success && ocrResult.text && ocrResult.text.length > 5) {
+      noteText = `[Auto @ ${timestamp}]\n${ocrResult.text}`;
     }
   } catch (err) {
-    console.warn('[OCR] Auto-extraction failed, using fallback note:', err.message);
+    console.warn('[OCR] Auto-extraction failed:', err.message);
   }
 
-  // Save with OCR-enriched or fallback note
-  saveScreenshot(videoId, videoTitle, frameData, timestamp, noteText);
+  // Get active subject and save via background worker
+  chrome.storage.local.get(['active_subject'], (res) => {
+    const subject = res.active_subject || 'General';
+    chrome.runtime.sendMessage({
+      action: 'SAVE_SCREENSHOT',
+      payload: { videoId, videoTitle, frameData, timestamp, noteText, subject }
+    });
+  });
 
-  // Flash the indicator to give visual feedback
   flashIndicator();
 }
 

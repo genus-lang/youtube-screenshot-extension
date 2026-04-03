@@ -24,6 +24,9 @@
         <a href="#preferences" class="nav-link" data-section="preferences">
           <span class="nav-icon">⚙️</span> Preferences
         </a>
+        <a href="#subjects" class="nav-link" data-section="subjects">
+          <span class="nav-icon">📚</span> Subjects
+        </a>
         <a href="#integrations" class="nav-link" data-section="integrations">
           <span class="nav-icon">🔗</span> Integrations
         </a>
@@ -130,6 +133,39 @@
           </div>
 
           <div id="prefs-status" class="status-toast hidden"></div>
+        </div>
+      </section>
+
+      <!-- ======= Subjects ======= -->
+      <section id="section-subjects" class="settings-section">
+        <div class="section-header">
+          <h2>Study Subjects</h2>
+          <p class="section-desc">Organize your screenshots by subject. Each subject gets its own dedicated page in OneNote and PDF exports.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <label class="input-label">Add New Subject</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="subject-name-input"
+                class="input-field"
+                placeholder="e.g. DSA, DBMS, OS, Networks..."
+                maxlength="50"
+              />
+              <button id="add-subject-btn" class="btn btn-primary" style="white-space:nowrap;">+ Add</button>
+            </div>
+          </div>
+
+          <div class="card-body border-top">
+            <label class="input-label">Your Subjects</label>
+            <div id="subjects-list" style="display:flex;flex-wrap:wrap;gap:10px;min-height:40px;">
+              <p id="subjects-empty" style="color:#64748b;font-size:13px;">No subjects yet. Add one above!</p>
+            </div>
+          </div>
+
+          <div id="subjects-status" class="status-toast hidden"></div>
         </div>
       </section>
 

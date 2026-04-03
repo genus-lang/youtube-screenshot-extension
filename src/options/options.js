@@ -8,6 +8,7 @@
  *   - Saving user preferences
  */
 import './options.css';
+import { getAllSubjects, addSubject, deleteSubject } from '../storage/storage.js';
 
 // =====================
 // DOM References
@@ -30,6 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const msLoginBtn      = document.getElementById('ms-login-btn');
   const saveMsBtn       = document.getElementById('save-ms-btn');
   const msStatus        = document.getElementById('ms-status');
+
+  const subjectInput    = document.getElementById('subject-name-input');
+  const addSubjectBtn   = document.getElementById('add-subject-btn');
+  const subjectsList    = document.getElementById('subjects-list');
+  const subjectsEmpty   = document.getElementById('subjects-empty');
+  const subjectsStatus  = document.getElementById('subjects-status');
 
   const navLinks       = document.querySelectorAll('.nav-link');
 
@@ -221,6 +228,60 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(msStatus, 'error', 'Failed to retrieve access token from Microsoft.');
       }
     });
+  });
+  // =====================
+  // Subject Management
+  // =====================
+  async function renderSubjects() {
+    const subjects = await getAllSubjects();
+    // Clear existing pills (keep the empty message)
+    Array.from(subjectsList.children).forEach(el => {
+      if (el.id !== 'subjects-empty') el.remove();
+    });
+
+    if (subjects.length === 0) {
+      if (subjectsEmpty) subjectsEmpty.style.display = 'block';
+      return;
+    }
+    if (subjectsEmpty) subjectsEmpty.style.display = 'none';
+
+    subjects.forEach(name => {
+      const pill = document.createElement('div');
+      pill.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.4);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:500;color:#c4b5fd;';
+      pill.innerHTML = `<span>${name}</span><button data-name="${name}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:15px;line-height:1;padding:0;" title="Delete">✕</button>`;
+      pill.querySelector('button').addEventListener('click', async (e) => {
+        const subjectName = e.target.dataset.name;
+        await deleteSubject(subjectName);
+        // If this was the active subject, reset to General
+        chrome.storage.local.get(['active_subject'], (res) => {
+          if (res.active_subject === subjectName) {
+            chrome.storage.local.set({ active_subject: 'General' });
+          }
+        });
+        await renderSubjects();
+        showStatus(subjectsStatus, 'success', `🗑️ "${subjectName}" deleted.`);
+      });
+      subjectsList.appendChild(pill);
+    });
+  }
+
+  renderSubjects();
+
+  addSubjectBtn.addEventListener('click', async () => {
+    const name = subjectInput.value.trim();
+    if (!name) {
+      showStatus(subjectsStatus, 'error', 'Please type a subject name.');
+      return;
+    }
+    await addSubject(name);
+    subjectInput.value = '';
+    await renderSubjects();
+    showStatus(subjectsStatus, 'success', `✅ Subject "${name}" added!`);
+  });
+
+  // Allow pressing Enter to add
+  subjectInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addSubjectBtn.click();
   });
 });
 

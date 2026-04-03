@@ -7,7 +7,7 @@
  *   - Clear All Data with confirmation dialog
  *   - Opens settings page
  */
-import { getAllData, getTotalScreenshotCount, getAllNotes, clearAllData } from '../storage/storage.js';
+import { getAllData, getTotalScreenshotCount, getAllNotes, clearAllData, getAllSubjects, setActiveSubject } from '../storage/storage.js';
 import { generateFullPDF } from '../export/pdfExport.js';
 import { exportToOneNote } from '../export/onenoteExport.js';
 import './popup.css';
@@ -27,9 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const confirmDelete   = document.getElementById('confirm-delete');
 
   // =====================
-  // Load & render stats
+  // Load & render stats + subjects
   // =====================
   await loadStats();
+  await loadSubjects();
 
   async function loadStats() {
     const data = await getAllData();
@@ -195,8 +196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // =====================
   // Auto Mode Toggle
   // =====================
-  const btnToggleAuto = document.getElementById('btn-toggle-auto');
-  const autoBtnText   = document.getElementById('auto-btn-text');
+  const btnToggleAuto  = document.getElementById('btn-toggle-auto');
+  const autoBtnText    = document.getElementById('auto-btn-text');
+  const subjectSelector = document.getElementById('subject-selector');
+  const btnManageSubj  = document.getElementById('btn-manage-subjects');
 
   // Query the current auto mode state from the content script
   getActiveYouTubeTab((tab) => {
@@ -239,6 +242,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       autoBtnText.textContent = 'Enable';
     }
   }
+
+  // =====================
+  // Subject Selector
+  // =====================
+  async function loadSubjects() {
+    const subjects = await getAllSubjects();
+    const active = await new Promise(res =>
+      chrome.storage.local.get(['active_subject'], d => res(d.active_subject || 'General'))
+    );
+
+    // Clear and rebuild options (General always first)
+    subjectSelector.innerHTML = '<option value="General">General</option>';
+    subjects.forEach(name => {
+      if (name === 'General') return;
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      subjectSelector.appendChild(opt);
+    });
+    subjectSelector.value = active;
+  }
+
+  subjectSelector.addEventListener('change', () => {
+    setActiveSubject(subjectSelector.value);
+  });
+
+  btnManageSubj.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
 
   // =====================
   // Settings button

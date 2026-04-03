@@ -60,85 +60,144 @@ export async function generateAISummary(notes) {
 }
 
 /**
+ * Generates a short per-screenshot AI summary from a single note.
+ */
+export async function generateScreenshotSummary(note, apiKey, model) {
+  if (!apiKey || !note || !note.trim()) return null;
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model || 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a study assistant. In 2-3 concise bullet points, summarize the key idea from this note. Be brief.'
+          },
+          { role: 'user', content: note }
+        ],
+        max_tokens: 200
+      })
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Generates a PDF containing:
- *   Page 1 → AI Summary of all notes
- *   Page 2+ → Each screenshot with its timestamp and note
+ *   - Screenshots grouped by Subject
+ *   - Each screenshot has: timestamp, image, note, AI summary below it
  */
 export async function generateFullPDF(allData) {
   const doc = new jsPDF();
 
-  const notes = getAllNotes(allData);
-  let summary = 'No notes were provided — screenshots are included below.';
+  // Load Groq settings
+  const stored = await new Promise(res =>
+    chrome.storage.local.get(['openai_api_key', 'openai_model'], res)
+  );
+  const apiKey = stored.openai_api_key || null;
+  const model = stored.openai_model || 'llama-3.3-70b-versatile';
 
-  if (notes.length > 0) {
-    try {
-      summary = await generateAISummary(notes);
-    } catch (err) {
-      console.error('AI Summary failed:', err);
-      if (err.message === 'NO_API_KEY') {
-        summary = '⚠️ No Groq API key configured.\n\nGo to the extension Options page to add your key, then try again.';
-      } else {
-        summary = `⚠️ AI summary failed: ${err.message}\n\nYour raw notes are included with each screenshot below.`;
-      }
-    }
-  }
+  // ── Group all screenshots by subject ──────────────────────────────────────
+  const subjectMap = {};  // { subjectName: [{ snap, videoTitle }] }
+  Object.values(allData).forEach(video => {
+    if (!video.screenshots) return;
+    video.screenshots.forEach(snap => {
+      const subj = snap.subject || 'General';
+      if (!subjectMap[subj]) subjectMap[subj] = [];
+      subjectMap[subj].push({ snap, videoTitle: video.title || 'Unknown Video' });
+    });
+  });
 
-  // ───── Page 1: AI Summary ─────
-  doc.setFontSize(20);
-  doc.setTextColor(30, 30, 60);
-  doc.text('AI Study Summary', 10, 18);
+  const subjects = Object.keys(subjectMap);
+  let firstPage = true;
 
-  doc.setDrawColor(99, 102, 241);
-  doc.setLineWidth(0.5);
-  doc.line(10, 22, 200, 22);
+  for (const subject of subjects) {
+    const items = subjectMap[subject];
 
-  doc.setFontSize(11);
-  doc.setTextColor(50, 50, 50);
-  const splitSummary = doc.splitTextToSize(summary, 180);
-  doc.text(splitSummary, 10, 30);
+    // Subject cover page
+    if (!firstPage) doc.addPage();
+    firstPage = false;
 
-  // ───── Pages 2+: Screenshots + Notes ─────
-  Object.entries(allData).forEach(([videoId, video]) => {
-    if (!video.screenshots || !video.screenshots.length) return;
+    doc.setFontSize(22);
+    doc.setTextColor(124, 58, 237); // purple
+    doc.text(`📚 ${subject}`, 10, 20);
+    doc.setDrawColor(124, 58, 237);
+    doc.setLineWidth(0.5);
+    doc.line(10, 24, 200, 24);
 
-    video.screenshots.forEach((item) => {
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${items.length} screenshot(s)`, 10, 32);
+
+    for (const { snap, videoTitle } of items) {
       doc.addPage();
 
-      // Video title header
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(video.title || videoId, 10, 10);
+      // Header: video + timestamp
+      doc.setFontSize(9);
+      doc.setTextColor(130, 130, 130);
+      doc.text(videoTitle, 10, 10);
 
-      // Timestamp
       doc.setFontSize(12);
       doc.setTextColor(30, 30, 60);
-      doc.text(`Time: ${item.time || 'N/A'}`, 10, 18);
+      doc.text(`⏱ ${snap.time || 'N/A'}`, 10, 18);
 
       // Screenshot image
-      if (item.image) {
+      let imageBottom = 24;
+      if (snap.image) {
         try {
-          doc.addImage(item.image, 'JPEG', 10, 24, 180, 100);
+          doc.addImage(snap.image, 'JPEG', 10, 24, 180, 100);
+          imageBottom = 128;
         } catch (e) {
-          console.error('Image embed failed:', e);
           doc.setTextColor(200, 50, 50);
-          doc.text('[Image could not be embedded]', 10, 70);
+          doc.text('[Image could not be embedded]', 10, 60);
+          imageBottom = 70;
         }
       }
 
+      let yPos = imageBottom + 4;
+
       // Note text
-      if (item.note) {
-        doc.setFontSize(11);
+      if (snap.note && snap.note.trim()) {
+        doc.setFontSize(10);
         doc.setTextColor(50, 50, 50);
-        const splitNote = doc.splitTextToSize(`Note: ${item.note}`, 180);
-        doc.text(splitNote, 10, 132);
+        const splitNote = doc.splitTextToSize(`📝 Note: ${snap.note}`, 180);
+        doc.text(splitNote, 10, yPos);
+        yPos += splitNote.length * 5 + 4;
       }
-    });
-  });
+
+      // Per-screenshot AI summary
+      if (apiKey && snap.note && snap.note.trim()) {
+        try {
+          const summary = await generateScreenshotSummary(snap.note, apiKey, model);
+          if (summary) {
+            doc.setFontSize(9);
+            doc.setTextColor(100, 50, 180);
+            doc.text('✨ AI Summary:', 10, yPos);
+            yPos += 6;
+            doc.setTextColor(60, 60, 60);
+            const splitSummary = doc.splitTextToSize(summary, 178);
+            doc.text(splitSummary, 12, yPos);
+          }
+        } catch (e) {
+          // AI summary is optional — skip silently
+        }
+      }
+    }
+  }
 
   doc.save('Smart_Notes.pdf');
 }
 
 export function exportToPDF(data) {
-  console.log('Exporting data to PDF...', data);
   return generateFullPDF(data);
 }
+
