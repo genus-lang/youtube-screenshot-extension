@@ -137,8 +137,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', '☁️ Uploading to Microsoft OneNote...');
 
     try {
-      await exportToOneNote();
+      const resp = await exportToOneNote();
       showToast('success', '✅ Successfully pushed to OneNote!');
+      
+      // Auto-open the exact note in a new tab so the user never has to search for it!
+      if (resp && resp.links && resp.links.oneNoteWebUrl) {
+        setTimeout(() => {
+          chrome.tabs.create({ url: resp.links.oneNoteWebUrl.href });
+        }, 1500);
+      }
     } catch (err) {
       console.error('OneNote export failed:', err);
       // Let the user know if it's an auth error vs a network error
