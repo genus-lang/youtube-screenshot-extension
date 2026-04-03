@@ -1,120 +1,106 @@
 import { jsPDF } from 'jspdf';
 
 // ─── Page constants (A4 in mm) ───────────────────────────────────────────────
-const PW = 210;   // page width
-const PH = 297;   // page height
-const ML = 14;    // margin left
-const MR = 14;    // margin right
-const MT = 14;    // margin top
-const CONTENT_W = PW - ML - MR;  // 182 mm usable width
+const PW = 210;
+const PH = 297;
+const ML = 14;
+const MR = 14;
+const MT = 14;
+const CONTENT_W = PW - ML - MR;  // 182 mm
 
-// ─── Colour palette (RGB tuples for jsPDF) ───────────────────────────────────
 const C = {
   purple:   [109, 40, 217],
   darkText: [22,  22,  38],
   midText:  [55,  65,  81],
   lightGray:[120, 120, 135],
   rule:     [200, 200, 215],
-  noteBg:   [245, 243, 255],  // light lavender
+  noteBg:   [245, 243, 255],
   noteBrd:  [109, 40, 217],
+  videoBg:  [237, 233, 254],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Returns aspect-correct image dimensions fitting maxW × maxH */
-function fitImage(imgEl, maxW, maxH) {
-  // We don't have actual img element in jsPDF context, so use a canvas trick
-  // Here we just use a standard 16:9 aspect ratio as fallback
-  const ratio = 16 / 9;
-  let w = maxW;
-  let h = w / ratio;
-  if (h > maxH) { h = maxH; w = h * ratio; }
-  return { w, h };
-}
-
-/** Draw a thin horizontal rule */
 function drawRule(doc, y, color = C.rule) {
   doc.setDrawColor(...color);
   doc.setLineWidth(0.3);
   doc.line(ML, y, PW - MR, y);
 }
 
-/** Draw a rounded filled rect (approximated with regular rect in jsPDF) */
-function drawRect(doc, x, y, w, h, fillColor, strokeColor = null) {
+function drawRect(doc, x, y, w, h, fillColor) {
   doc.setFillColor(...fillColor);
-  if (strokeColor) {
-    doc.setDrawColor(...strokeColor);
-    doc.roundedRect(x, y, w, h, 2, 2, 'FD');
-  } else {
-    doc.roundedRect(x, y, w, h, 2, 2, 'F');
-  }
+  doc.roundedRect(x, y, w, h, 2, 2, 'F');
 }
 
-/** Write a text block clamped to page height; returns new yPos */
-function writeText(doc, text, x, y, maxWidth, opts = {}) {
-  const { fontSize = 10, color = C.midText, lineGap = 0.5, bold = false } = opts;
-  doc.setFontSize(fontSize);
-  doc.setTextColor(...color);
-  doc.setFont('helvetica', bold ? 'bold' : 'normal');
-  const lines = doc.splitTextToSize(text, maxWidth);
-  const lineH = fontSize * 0.3528 + lineGap; // pt to mm
-  lines.forEach((line, i) => {
-    doc.text(line, x, y + i * lineH);
-  });
-  return y + lines.length * lineH;
-}
-
-// ─── Cover page for each Subject ─────────────────────────────────────────────
-function drawSubjectCover(doc, subject, count) {
+// ─── Subject cover page ───────────────────────────────────────────────────────
+function drawSubjectCover(doc, subject, screenshotCount) {
   const cx = PW / 2;
   const cy = PH / 2 - 20;
 
-  // Background gradient stripe
-  drawRect(doc, 0, cy - 30, PW, 60, [235, 228, 255]);
+  drawRect(doc, 0, cy - 35, PW, 70, [235, 228, 255]);
 
-  // Subject title
   doc.setFontSize(30);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.purple);
   doc.text(subject, cx, cy, { align: 'center' });
 
-  // Underline
   const tw = doc.getTextWidth(subject);
   doc.setDrawColor(...C.purple);
   doc.setLineWidth(0.8);
-  doc.line(cx - tw / 2, cy + 3, cx + tw / 2, cy + 3);
+  doc.line(cx - tw / 2, cy + 4, cx + tw / 2, cy + 4);
 
-  // Count label
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.lightGray);
-  doc.text(`${count} screenshot${count !== 1 ? 's' : ''}`, cx, cy + 12, { align: 'center' });
+  doc.text(`${screenshotCount} screenshot${screenshotCount !== 1 ? 's' : ''}`, cx, cy + 14, { align: 'center' });
 
-  // Watermark
-  doc.setFontSize(9);
-  doc.setTextColor(180, 180, 190);
+  doc.setFontSize(8);
+  doc.setTextColor(190, 190, 200);
+  doc.text('YouTube Screenshot Notes', cx, PH - 10, { align: 'center' });
+}
+
+// ─── Video title header page (shown ONCE per video within a subject) ──────────
+function drawVideoTitlePage(doc, videoTitle) {
+  const cx = PW / 2;
+  const cy = PH / 2;
+
+  drawRect(doc, ML, cy - 20, CONTENT_W, 32, C.videoBg);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.lightGray);
+  doc.text('VIDEO', cx, cy - 10, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.darkText);
+  const titleLines = doc.splitTextToSize(videoTitle, CONTENT_W - 20);
+  const lineH = 7;
+  titleLines.forEach((line, i) => {
+    doc.text(line, cx, cy + i * lineH, { align: 'center' });
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(190, 190, 200);
   doc.text('YouTube Screenshot Notes', cx, PH - 10, { align: 'center' });
 }
 
 // ─── Single screenshot page ───────────────────────────────────────────────────
-async function drawScreenshotPage(doc, snap, videoTitle, pageNum, totalPages) {
+function drawScreenshotPage(doc, snap, pageNum, totalPages) {
   let y = MT;
 
-  // — Top bar: video title + page number —
+  // Top: page number
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.lightGray);
-  const titleClamped = videoTitle.length > 80 ? videoTitle.slice(0, 77) + '...' : videoTitle;
-  doc.text(titleClamped, ML, y);
   doc.text(`${pageNum} / ${totalPages}`, PW - MR, y, { align: 'right' });
   y += 4;
-
   drawRule(doc, y);
   y += 5;
 
-  // — Timestamp chip —
+  // Timestamp chip
   const timeStr = snap.time || '0:00';
-  const chipW = 28;
+  const chipW = 30;
   drawRect(doc, ML, y - 4, chipW, 7, [235, 228, 255]);
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
@@ -122,8 +108,8 @@ async function drawScreenshotPage(doc, snap, videoTitle, pageNum, totalPages) {
   doc.text(timeStr, ML + chipW / 2, y, { align: 'center' });
   y += 7;
 
-  // — Screenshot image (16:9, fills full content width) —
-  const imgH = Math.round(CONTENT_W * 9 / 16);  // e.g., 102mm for 182mm wide
+  // Screenshot image (full-width 16:9)
+  const imgH = Math.round(CONTENT_W * 9 / 16);
   if (snap.image) {
     try {
       doc.addImage(snap.image, 'JPEG', ML, y, CONTENT_W, imgH, undefined, 'FAST');
@@ -134,22 +120,19 @@ async function drawScreenshotPage(doc, snap, videoTitle, pageNum, totalPages) {
       doc.text('[Image could not be embedded]', ML + CONTENT_W / 2, y + imgH / 2, { align: 'center' });
     }
   }
-  y += imgH + 4;
+  y += imgH + 5;
 
-  // — Note box —
+  // Note box
   if (snap.note && snap.note.trim()) {
-    const noteText = snap.note.trim();
-    const noteLines = doc.splitTextToSize(noteText, CONTENT_W - 10);
-    const noteBoxH = noteLines.length * 5 + 8;
+    const noteLines = doc.splitTextToSize(snap.note.trim(), CONTENT_W - 10);
+    const noteBoxH = noteLines.length * 5 + 10;
 
-    // Guard: if note would overflow page, truncate
-    if (y + noteBoxH < PH - 20) {
-      drawRect(doc, ML, y, CONTENT_W, noteBoxH, C.noteBg, null);
-      // Left accent bar
+    if (y + noteBoxH < PH - 16) {
+      drawRect(doc, ML, y, CONTENT_W, noteBoxH, C.noteBg);
       doc.setFillColor(...C.noteBrd);
       doc.rect(ML, y, 1.5, noteBoxH, 'F');
 
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.purple);
       doc.text('Note', ML + 4, y + 5);
@@ -160,38 +143,45 @@ async function drawScreenshotPage(doc, snap, videoTitle, pageNum, totalPages) {
       noteLines.forEach((line, i) => {
         doc.text(line, ML + 4, y + 10 + i * 5);
       });
-      y += noteBoxH + 4;
     }
   }
 
-  // — Footer rule —
-  if (y < PH - 12) {
-    drawRule(doc, PH - 10);
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(170, 170, 180);
-    doc.text('YouTube Screenshot Notes', PW / 2, PH - 6, { align: 'center' });
-  }
+  // Footer
+  drawRule(doc, PH - 10);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(170, 170, 180);
+  doc.text('YouTube Screenshot Notes', PW / 2, PH - 6, { align: 'center' });
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
 /**
- * Generates a clean, scalable PDF grouped by Subject.
- * Each subject has a cover page, then one page per screenshot.
- * No AI summary — just pristine image + note layout.
+ * PDF structure:
+ *   [Subject Cover Page]
+ *     [Video Title Page]   ← shown ONCE per video
+ *       Screenshot 1
+ *       Screenshot 2
+ *     [Next Video Title Page]
+ *       Screenshot 3
+ *   [Next Subject Cover Page]
+ *     ...
  */
 export async function generateFullPDF(allData) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-  // Group all screenshots by subject
+  // Build: subjectMap → { subject: { videoId: { title, screenshots[] } } }
   const subjectMap = {};
   Object.values(allData).forEach(video => {
     if (!video.screenshots) return;
     video.screenshots.forEach(snap => {
       const subj = snap.subject || 'General';
-      if (!subjectMap[subj]) subjectMap[subj] = [];
-      subjectMap[subj].push({ snap, videoTitle: video.title || 'Unknown Video' });
+      if (!subjectMap[subj]) subjectMap[subj] = {};
+      const vid = video.videoId || 'unknown';
+      if (!subjectMap[subj][vid]) {
+        subjectMap[subj][vid] = { title: video.title || 'Unknown Video', screenshots: [] };
+      }
+      subjectMap[subj][vid].screenshots.push(snap);
     });
   });
 
@@ -205,23 +195,32 @@ export async function generateFullPDF(allData) {
   }
 
   // Count total screenshot pages for page numbering
-  const totalPages = subjects.reduce((sum, s) => sum + subjectMap[s].length, 0);
+  let totalPages = 0;
+  subjects.forEach(s => Object.values(subjectMap[s]).forEach(v => totalPages += v.screenshots.length));
   let pageNum = 0;
   let firstSection = true;
 
   for (const subject of subjects) {
-    const items = subjectMap[subject];
+    const videoMap = subjectMap[subject];
+    const subjectTotal = Object.values(videoMap).reduce((s, v) => s + v.screenshots.length, 0);
 
-    // Subject cover page
     if (!firstSection) doc.addPage();
     firstSection = false;
-    drawSubjectCover(doc, subject, items.length);
+    drawSubjectCover(doc, subject, subjectTotal);
 
-    // One page per screenshot
-    for (const { snap, videoTitle } of items) {
+    for (const videoId of Object.keys(videoMap)) {
+      const { title, screenshots } = videoMap[videoId];
+
+      // Video title page (once per video)
       doc.addPage();
-      pageNum++;
-      await drawScreenshotPage(doc, snap, videoTitle, pageNum, totalPages);
+      drawVideoTitlePage(doc, title);
+
+      // One screenshot per page
+      for (const snap of screenshots) {
+        doc.addPage();
+        pageNum++;
+        drawScreenshotPage(doc, snap, pageNum, totalPages);
+      }
     }
   }
 
@@ -229,7 +228,7 @@ export async function generateFullPDF(allData) {
   doc.save(`Study_Notes_${date}.pdf`);
 }
 
-// Keep generateAISummary exported so onenoteExport.js can still import it
+// ─── Keep generateAISummary exported for onenoteExport.js ────────────────────
 export async function generateAISummary(notes, videoTitle) {
   const stored = await new Promise(res =>
     chrome.storage.local.get(['openai_api_key', 'openai_model'], res)
@@ -238,6 +237,7 @@ export async function generateAISummary(notes, videoTitle) {
   const model = stored.openai_model || 'llama-3.3-70b-versatile';
   if (!apiKey) throw new Error('NO_API_KEY');
 
+  const text = Array.isArray(notes) ? notes.join('\n') : notes;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -251,9 +251,9 @@ export async function generateAISummary(notes, videoTitle) {
           role: 'system',
           content: `You are a study assistant. Summarize these lecture notes from "${videoTitle || 'a video'}" as structured bullet points with clear headings. Be concise and educational.`
         },
-        { role: 'user', content: Array.isArray(notes) ? notes.join('\n') : notes }
+        { role: 'user', content: text }
       ],
-      max_tokens: 600
+      max_tokens: 500
     })
   });
 
