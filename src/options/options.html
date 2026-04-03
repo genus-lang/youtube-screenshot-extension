@@ -24,6 +24,9 @@
         <a href="#preferences" class="nav-link" data-section="preferences">
           <span class="nav-icon">⚙️</span> Preferences
         </a>
+        <a href="#integrations" class="nav-link" data-section="integrations">
+          <span class="nav-icon">🔗</span> Integrations
+        </a>
         <a href="#about" class="nav-link" data-section="about">
           <span class="nav-icon">ℹ️</span> About
         </a>
@@ -127,6 +130,47 @@
           </div>
 
           <div id="prefs-status" class="status-toast hidden"></div>
+        </div>
+      </section>
+
+      <!-- ======= Integrations ======= -->
+      <section id="section-integrations" class="settings-section">
+        <div class="section-header">
+          <h2>Third-Party Integrations</h2>
+          <p class="section-desc">Connect external services like Microsoft OneNote to export your study notes instantly.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">OAuth 2.0</span>
+            <h3>Microsoft OneNote</h3>
+          </div>
+          <div class="card-body">
+            <label for="microsoft-client-id" class="input-label">Azure Application (Client) ID</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="microsoft-client-id"
+                class="input-field"
+                placeholder="4ec48751-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <p class="input-hint">
+              Required to push notes directly to your personal OneNote notebook. 
+              Created via the <a href="https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps" target="_blank" rel="noopener">Azure Portal</a>.
+            </p>
+          </div>
+
+          <div class="card-footer">
+            <button id="ms-login-btn" class="btn btn-primary" style="background: linear-gradient(135deg, #2563eb, #3b82f6);">
+               Connect to Microsoft
+            </button>
+            <button id="save-ms-btn" class="btn btn-ghost">Save ID Only</button>
+          </div>
+
+          <div id="ms-status" class="status-toast hidden"></div>
         </div>
       </section>
 
