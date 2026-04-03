@@ -1,0 +1,4 @@
+export const MSG_ACTIONS = {
+  CAPTURE: 'CAPTURE_FRAME',
+  TOGGLE_AUTO: 'TOGGLE_AUTO_MODE'
+};
