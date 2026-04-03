@@ -4,7 +4,6 @@
  * Shows the captured frame preview, a textarea for the user to type a note,
  * and an "Extract Text" button that uses Tesseract OCR to auto-fill notes.
  */
-import { saveScreenshot } from '../storage/storage.js';
 import { getVideoElement } from './videoController.js';
 import { extractText } from './ocrEngine.js';
 
@@ -146,8 +145,12 @@ export function showNoteUI(frameData, timestamp, wasPlaying) {
   // --- Save handler ---
   const doSave = (noteText) => {
     const { videoId, videoTitle } = getVideoMeta();
-    saveScreenshot(videoId, videoTitle, frameData, timestamp, noteText);
-    showSavedToast();
+    chrome.runtime.sendMessage({
+      action: 'SAVE_SCREENSHOT',
+      payload: { videoId, videoTitle, frameData, timestamp, noteText }
+    }, (resp) => {
+      showSavedToast();
+    });
   };
 
   freshSave.addEventListener('click', () => {
