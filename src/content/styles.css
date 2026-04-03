@@ -1,0 +1,440 @@
+/*
+ * styles.css
+ * Premium, modern UI styles for the YouTube Screenshot Notes extension.
+ * Injected alongside the content script into youtube.com.
+ */
+
+/* ==============================
+   Screenshot Button (in player)
+   ============================== */
+#yt-screenshot-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  margin-right: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: transform 0.18s ease, background-color 0.2s ease;
+}
+
+#yt-screenshot-btn:hover {
+  transform: scale(1.15);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#yt-screenshot-btn:active {
+  transform: scale(0.95);
+}
+
+#yt-screenshot-btn svg {
+  pointer-events: none;
+}
+
+/* ==============================
+   Modal Overlay
+   ============================== */
+.yt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  transition: background 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+.yt-modal-overlay.yt-modal-visible {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+}
+
+.yt-modal-overlay.yt-modal-hidden {
+  pointer-events: none;
+}
+
+/* ==============================
+   Modal Card
+   ============================== */
+.yt-modal-card {
+  position: relative;
+  width: 460px;
+  max-width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  transform: translateY(30px) scale(0.96);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease;
+}
+
+.yt-modal-visible .yt-modal-card {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.yt-modal-hidden .yt-modal-card {
+  transform: translateY(30px) scale(0.96);
+  opacity: 0;
+}
+
+/* ==============================
+   Header
+   ============================== */
+.yt-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.yt-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yt-modal-icon {
+  font-size: 18px;
+}
+
+.yt-modal-title {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: -0.01em;
+}
+
+.yt-modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.yt-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ==============================
+   Image Preview
+   ============================== */
+.yt-modal-preview {
+  position: relative;
+  padding: 0;
+  background: #0f0f1a;
+}
+
+.yt-modal-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+.yt-modal-timestamp {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #a5f3fc;
+  letter-spacing: 0.02em;
+}
+
+/* ==============================
+   Body / Textarea
+   ============================== */
+.yt-modal-body {
+  padding: 16px 20px 8px;
+}
+
+.yt-modal-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.yt-modal-label {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* OCR Extract Button */
+.yt-ocr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.08);
+  color: #a5b4fc;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.yt-ocr-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.yt-ocr-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.yt-ocr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.yt-ocr-icon {
+  font-size: 12px;
+}
+
+/* OCR Progress Bar */
+.yt-ocr-progress-container {
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #16162a;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  position: relative;
+  height: 22px;
+}
+
+.yt-ocr-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+  background-size: 200% 100%;
+  animation: yt-ocr-shimmer 1.5s linear infinite;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+@keyframes yt-ocr-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.yt-ocr-progress-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.02em;
+}
+
+.yt-modal-textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #16162a;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.yt-modal-textarea::placeholder {
+  color: #475569;
+}
+
+.yt-modal-textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ==============================
+   Footer / Buttons
+   ============================== */
+.yt-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px 16px;
+}
+
+.yt-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.yt-modal-btn:active {
+  transform: scale(0.97);
+}
+
+/* Ghost / Skip button */
+.yt-modal-btn-ghost {
+  background: transparent;
+  color: #64748b;
+}
+
+.yt-modal-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+}
+
+/* Primary / Save button */
+.yt-modal-btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
+}
+
+.yt-modal-btn-primary:hover {
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+/* Keyboard shortcut badge */
+.yt-modal-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+}
+
+/* ==============================
+   Toast Notification
+   ============================== */
+.yt-modal-toast {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 24px rgba(5, 150, 105, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.yt-modal-toast:not(.yt-modal-hidden) {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==============================
+   Auto-Mode Indicator (on player)
+   ============================== */
+#yt-auto-mode-indicator {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  pointer-events: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.yt-auto-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+  animation: yt-auto-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes yt-auto-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+.yt-auto-label {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fca5a5;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Flash animation when a slide is captured */
+#yt-auto-mode-indicator.yt-auto-flash {
+  transform: scale(1.1);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.7);
+}
