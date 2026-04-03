@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const confirmOverlay  = document.getElementById('confirm-overlay');
   const confirmCancel   = document.getElementById('confirm-cancel');
   const confirmDelete   = document.getElementById('confirm-delete');
+  const subjectSelector = document.getElementById('subject-selector');
+  const btnManageSubj   = document.getElementById('btn-manage-subjects');
 
   // =====================
   // Load & render stats + subjects
@@ -198,8 +200,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // =====================
   const btnToggleAuto  = document.getElementById('btn-toggle-auto');
   const autoBtnText    = document.getElementById('auto-btn-text');
-  const subjectSelector = document.getElementById('subject-selector');
-  const btnManageSubj  = document.getElementById('btn-manage-subjects');
 
   // Query the current auto mode state from the content script
   getActiveYouTubeTab((tab) => {
