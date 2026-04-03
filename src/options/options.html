@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — YouTube Screenshot Notes</title>
+  <link rel="stylesheet" href="options.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="settings-wrapper">
+    <!-- Sidebar branding -->
+    <aside class="settings-sidebar">
+      <div class="sidebar-brand">
+        <span class="sidebar-icon">📸</span>
+        <h1 class="sidebar-title">Screenshot Notes</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#api" class="nav-link active" data-section="api">
+          <span class="nav-icon">🔑</span> API Settings
+        </a>
+        <a href="#preferences" class="nav-link" data-section="preferences">
+          <span class="nav-icon">⚙️</span> Preferences
+        </a>
+        <a href="#about" class="nav-link" data-section="about">
+          <span class="nav-icon">ℹ️</span> About
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="settings-main">
+
+      <!-- ======= API Settings ======= -->
+      <section id="section-api" class="settings-section active">
+        <div class="section-header">
+          <h2>API Configuration</h2>
+          <p class="section-desc">Connect your <span style="color:#10b981;">completely free</span> Groq API key to enable AI-powered note summaries in your exported PDFs.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-badge">Required</span>
+            <h3>Groq API Key (Fast & Free)</h3>
+          </div>
+          <div class="card-body">
+            <label for="api-key-input" class="input-label">Your secret key</label>
+            <div class="input-group">
+              <input
+                type="password"
+                id="api-key-input"
+                class="input-field"
+                placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="toggle-visibility" class="input-addon" title="Show/hide key">
+                <span id="eye-icon">👁️</span>
+              </button>
+            </div>
+            <p class="input-hint">
+              Get your 100% free key from
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+              Your key is stored locally and never leaves your browser.
+            </p>
+          </div>
+
+          <div class="card-body">
+            <label for="model-select" class="input-label">AI Model</label>
+            <select id="model-select" class="input-field select-field">
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Best Quality)</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fastest & Light)</option>
+              <option value="mixtral-8x7b-32768">Mixtral 8x7B (Great for summaries)</option>
+            </select>
+            <p class="input-hint">Llama 3.3 70B is recommended for incredibly smart and fast summaries.</p>
+          </div>
+
+          <div class="card-footer">
+            <button id="test-api-btn" class="btn btn-ghost">Test Connection</button>
+            <button id="save-api-btn" class="btn btn-primary">Save Settings</button>
+          </div>
+
+          <!-- Status toast -->
+          <div id="api-status" class="status-toast hidden"></div>
+        </div>
+      </section>
+
+      <!-- ======= Preferences ======= -->
+      <section id="section-preferences" class="settings-section">
+        <div class="section-header">
+          <h2>Preferences</h2>
+          <p class="section-desc">Customize how the extension behaves.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="toggle-row">
+              <div>
+                <h4>Auto-pause on capture</h4>
+                <p class="toggle-desc">Pause the video automatically when you take a screenshot.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-autopause" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="card-body border-top">
+            <div class="toggle-row">
+              <div>
+                <h4>Capture quality</h4>
+                <p class="toggle-desc">Higher quality = larger storage usage per screenshot.</p>
+              </div>
+              <select id="pref-quality" class="input-field select-field select-sm">
+                <option value="0.9">High (90%)</option>
+                <option value="0.7">Medium (70%)</option>
+                <option value="0.5">Low (50%)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button id="save-prefs-btn" class="btn btn-primary">Save Preferences</button>
+          </div>
+
+          <div id="prefs-status" class="status-toast hidden"></div>
+        </div>
+      </section>
+
+      <!-- ======= About ======= -->
+      <section id="section-about" class="settings-section">
+        <div class="section-header">
+          <h2>About</h2>
+          <p class="section-desc">YouTube Screenshot Notes v1.0</p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <p style="color: #94a3b8; line-height: 1.7;">
+              A modular Chrome extension that lets you capture frames from YouTube videos,
+              annotate them with notes, and export everything as a structured PDF with
+              AI-generated summaries.<br><br>
+              Built with ❤️ using Vite + Manifest V3.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
