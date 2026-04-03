@@ -25,6 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const prefQuality    = document.getElementById('pref-quality');
   const savePrefsBtn   = document.getElementById('save-prefs-btn');
   const prefsStatus    = document.getElementById('prefs-status');
+  
+  const msClientIdInput = document.getElementById('microsoft-client-id');
+  const msLoginBtn      = document.getElementById('ms-login-btn');
+  const saveMsBtn       = document.getElementById('save-ms-btn');
+  const msStatus        = document.getElementById('ms-status');
 
   const navLinks       = document.querySelectorAll('.nav-link');
 
@@ -49,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // =====================
   // Load saved settings
   // =====================
-  chrome.storage.local.get(['openai_api_key', 'openai_model', 'pref_autopause', 'pref_quality'], (data) => {
+  chrome.storage.local.get(['openai_api_key', 'openai_model', 'pref_autopause', 'pref_quality', 'microsoft_client_id'], (data) => {
     if (data.openai_api_key) {
       apiKeyInput.value = data.openai_api_key;
     }
@@ -61,6 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (data.pref_quality) {
       prefQuality.value = data.pref_quality;
+    }
+    if (data.microsoft_client_id) {
+      msClientIdInput.value = data.microsoft_client_id;
     }
   });
 
@@ -151,6 +159,67 @@ document.addEventListener('DOMContentLoaded', () => {
       pref_quality: prefQuality.value
     }, () => {
       showStatus(prefsStatus, 'success', '✅ Preferences saved!');
+    });
+  });
+
+  // =====================
+  // Microsoft Intg
+  // =====================
+  saveMsBtn.addEventListener('click', () => {
+    const clientId = msClientIdInput.value.trim();
+    if (!clientId) {
+      showStatus(msStatus, 'error', 'Please enter a Client ID.');
+      return;
+    }
+    chrome.storage.local.set({ microsoft_client_id: clientId }, () => {
+      showStatus(msStatus, 'success', '✅ Client ID saved locally.');
+    });
+  });
+
+  msLoginBtn.addEventListener('click', () => {
+    const clientId = msClientIdInput.value.trim();
+    if (!clientId) {
+      showStatus(msStatus, 'error', 'You must enter your Azure Client ID first.');
+      return;
+    }
+    
+    // Save it first
+    chrome.storage.local.set({ microsoft_client_id: clientId });
+    
+    showStatus(msStatus, 'info', 'Opening Microsoft Login...');
+    
+    const redirectUrl = chrome.identity.getRedirectURL();
+    console.log('[Auth] Custom Redirect URI generated:', redirectUrl);
+    
+    const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('redirect_uri', redirectUrl);
+    authUrl.searchParams.set('scope', 'Notes.Create Notes.ReadWrite User.Read');
+
+    chrome.identity.launchWebAuthFlow({
+      url: authUrl.href,
+      interactive: true
+    }, (redirectResponse) => {
+      if (chrome.runtime.lastError || !redirectResponse) {
+        showStatus(msStatus, 'error', `Auth Error: ${chrome.runtime.lastError?.message || 'Login cancelled.'}`);
+        return;
+      }
+      
+      // Extract the token from the #hash in the resulting URL
+      const hashParams = new URL(redirectResponse).hash.substring(1);
+      const params = new URLSearchParams(hashParams);
+      const token = params.get('access_token');
+      
+      if (token) {
+        chrome.storage.local.set({ microsoft_token: token }, () => {
+          showStatus(msStatus, 'success', '✅ Successfully connected to Microsoft!');
+          msLoginBtn.innerHTML = 'Connected!';
+          msLoginBtn.style.background = '#059669'; // Green success
+        });
+      } else {
+        showStatus(msStatus, 'error', 'Failed to retrieve access token from Microsoft.');
+      }
     });
   });
 });
