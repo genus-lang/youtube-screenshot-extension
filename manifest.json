@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Screenshot Notes",
+  "version": "1.0",
+  "description": "Smart screenshot notes tool",
+  "permissions": ["storage", "activeTab", "scripting", "alarms", "tabs"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  },
+  "options_page": "src/options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/content/content.js"]
+    }
+  ],
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  }
+}
