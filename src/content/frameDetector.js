@@ -16,6 +16,8 @@
 import { getVideoElement } from './videoController.js';
 import { captureFrame } from './canvasCapture.js';
 import { formatTime } from '../utils/helpers.js';
+import { extractText } from './ocrEngine.js';
+import { hasPerson, initFaceDetector } from '../utils/faceDetector.js';
 
 // =====================
 // State
@@ -23,17 +25,21 @@ import { formatTime } from '../utils/helpers.js';
 let _isAutoMode = false;
 let _intervalId = null;
 let _previousPixels = null;
+let _lastSavedPixels = null;
 let _cooldownActive = false;
+let _pendingCapture = false;
+let _isProcessing = false;
+
 
 // =====================
 // Config (tuneable)
 // =====================
 const CONFIG = {
-  CHECK_INTERVAL_MS: 2000,      // Compare frames every 2 seconds
+  CHECK_INTERVAL_MS: 3000,       // Compare frames every 3 seconds
   SAMPLE_WIDTH: 160,             // Downscale to 160px wide for perf
   SAMPLE_HEIGHT: 90,             // 16:9 aspect ratio
-  CHANGE_THRESHOLD: 0.18,        // 18% of pixels must differ to trigger
-  PIXEL_DIFF_THRESHOLD: 40,      // Individual pixel must differ by 40+ (0-255 grayscale)
+  CHANGE_THRESHOLD: 0.03,        // 3% of pixels must differ to trigger (extremely sensitive)
+  PIXEL_DIFF_THRESHOLD: 20,      // Individual pixel must differ by 20+ (0-255 grayscale)
   COOLDOWN_MS: 5000,             // After a detection, wait 5s before checking again
 };
 
@@ -73,47 +79,57 @@ export function isAutoModeActive() {
 }
 
 // =====================
-// Scanning Loop
+// Scanning Loop & Events
 // =====================
 
-function startScanning() {
-  if (_intervalId) return; // already running
+async function handlePauseEvent(e) {
+  if (!_isAutoMode) return;
+  
+  const video = getVideoElement();
+  if (!video || e.target !== video) return;
 
-  _previousPixels = null;
+  console.log('[YT Screenshot Notes] Video paused! Running instant face check...');
+  
+  try {
+    const personDetected = await hasPerson(video);
+
+    if (!personDetected) {
+      console.log('[YT Screenshot Notes] No person detected! Taking immediate screenshot.');
+      captureAndSaveSlide(video);
+    } else {
+      console.log('[YT Screenshot Notes] Person detected on pause. Screenshot deferred.');
+    }
+  } catch (err) {
+    console.warn('[FaceDetector] Error:', err);
+    // Fallback: take screenshot anyway if AI fails
+    captureAndSaveSlide(video);
+  }
+}
+
+function startScanning() {
+  if (_intervalId) return; // already running (using as flag)
+  _intervalId = true;
   _cooldownActive = false;
 
-  _intervalId = setInterval(() => {
-    if (_cooldownActive) return;
+  console.log('[YT Screenshot Notes] Starting smart pause-capture mode...');
 
-    const video = getVideoElement();
-    if (!video || video.paused || video.ended) return;
+  // Use capturing phase on window so it survives YouTube SPA navigations!
+  window.addEventListener('pause', handlePauseEvent, true);
 
-    const currentPixels = sampleFrame(video);
-    if (!currentPixels) return;
-
-    if (_previousPixels) {
-      const changeRatio = compareFrames(_previousPixels, currentPixels);
-
-      if (changeRatio >= CONFIG.CHANGE_THRESHOLD) {
-        onSlideChangeDetected(video);
-      }
-    }
-
-    _previousPixels = currentPixels;
-  }, CONFIG.CHECK_INTERVAL_MS);
+  // Pre-warm the face detector model so it's instant when paused
+  initFaceDetector().catch(() => {});
 
   // Inject a visual indicator on the YouTube player
   injectAutoModeIndicator(true);
 }
 
 function stopScanning() {
-  if (_intervalId) {
-    clearInterval(_intervalId);
-    _intervalId = null;
-  }
-  _previousPixels = null;
+  _intervalId = null;
   _cooldownActive = false;
 
+  window.removeEventListener('pause', handlePauseEvent, true);
+
+  console.log('[YT Screenshot Notes] Stopped auto-capture.');
   injectAutoModeIndicator(false);
 }
 
@@ -157,30 +173,32 @@ function sampleFrame(video) {
  * @returns {number} ratio of changed pixels (0.0 to 1.0)
  */
 function compareFrames(prev, curr) {
-  if (prev.length !== curr.length) return 1; // size mismatch = definitely changed
+  if (prev.length !== curr.length) return 1;
 
   let changedPixels = 0;
-  const totalPixels = prev.length;
+  // Ignore top 15% and bottom 15% where YouTube UI elements (title, progress bar, captions) reside
+  const startY = Math.floor(CONFIG.SAMPLE_HEIGHT * 0.15);
+  const endY = Math.floor(CONFIG.SAMPLE_HEIGHT * 0.85);
+  const totalCheckedPixels = (endY - startY) * CONFIG.SAMPLE_WIDTH;
 
-  for (let i = 0; i < totalPixels; i++) {
-    if (Math.abs(prev[i] - curr[i]) > CONFIG.PIXEL_DIFF_THRESHOLD) {
-      changedPixels++;
+  for (let y = startY; y < endY; y++) {
+    for (let x = 0; x < CONFIG.SAMPLE_WIDTH; x++) {
+      const i = y * CONFIG.SAMPLE_WIDTH + x;
+      if (Math.abs(prev[i] - curr[i]) > CONFIG.PIXEL_DIFF_THRESHOLD) {
+        changedPixels++;
+      }
     }
   }
 
-  return changedPixels / totalPixels;
+  return changedPixels / totalCheckedPixels;
 }
 
 // =====================
-// Slide Change Handler
+// Slide Capture Handler
 // =====================
 
-async function onSlideChangeDetected(video) {
-  console.log('[YT Screenshot Notes] 🎯 Slide change detected!');
-
-  _cooldownActive = true;
-  setTimeout(() => { _cooldownActive = false; }, CONFIG.COOLDOWN_MS);
-
+async function captureAndSaveSlide(video) {
+  console.log('[YT Screenshot Notes] Taking screenshot immediately (no waiting)...');
   const frameData = captureFrame(video, 0.9);
   if (!frameData) return;
 
@@ -198,33 +216,34 @@ async function onSlideChangeDetected(video) {
     videoTitle = titleEl.textContent.trim();
   }
 
-  let noteText = `[Auto] Slide change detected at ${timestamp}`;
+  let noteText = `[Auto Capture] Captured at ${timestamp}`;
 
-  // Try OCR via background worker (no CSP issues)
+  flashIndicator(); // flash immediately so user knows it captured!
+
+  // Perform OCR quickly via the background or iframe
   try {
-    const ocrResult = await new Promise(resolve => {
-      chrome.runtime.sendMessage(
-        { action: 'EXTRACT_OCR', payload: { imageDataUrl: frameData } },
-        resolve
-      );
-    });
-    if (ocrResult && ocrResult.success && ocrResult.text && ocrResult.text.length > 5) {
-      noteText = `[Auto @ ${timestamp}]\n${ocrResult.text}`;
+    const textValue = await extractText(frameData);
+    if (typeof textValue === 'string' && textValue.length > 2) {
+      noteText = `[Auto Capture] \n${textValue}`;
+      console.log('[YT Screenshot Notes] OCR Success!');
     }
   } catch (err) {
-    console.warn('[OCR] Auto-extraction failed:', err.message);
+    console.warn('[YT Screenshot Notes] OCR failed:', err.message);
   }
 
-  // Get active subject and save via background worker
+  if (!chrome || !chrome.storage || !chrome.storage.local) {
+    console.warn("Extension updated! Please refresh the page to auto-capture.");
+    return;
+  }
+
   chrome.storage.local.get(['active_subject'], (res) => {
     const subject = res.active_subject || 'General';
     chrome.runtime.sendMessage({
       action: 'SAVE_SCREENSHOT',
       payload: { videoId, videoTitle, frameData, timestamp, noteText, subject }
     });
+    console.log('[YT Screenshot Notes] Auto capture saved to background successfully!');
   });
-
-  flashIndicator();
 }
 
 // =====================

@@ -1,4 +1,7 @@
-import { jsPDF } from 'jspdf';
+﻿const fs = require('fs');
+
+const code = \import { jsPDF } from 'jspdf';
+
 // Page constants (A4 in mm)
 const PW = 210;
 const PH = 297;
@@ -26,19 +29,23 @@ function drawRect(doc, x, y, w, h, fill) {
 function drawSubjectCover(doc, subject, count) {
   const cx = PW / 2;
   const cy = PH / 2 - 20;
+
   drawRect(doc, 0, cy - 35, PW, 70, [235, 228, 255]);
+
   doc.setFontSize(30);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.purple);
   doc.text(subject, cx, cy, { align: 'center' });
+
   const tw = doc.getTextWidth(subject);
   doc.setDrawColor(...C.purple);
   doc.setLineWidth(0.8);
   doc.line(cx - tw / 2, cy + 4, cx + tw / 2, cy + 4);
+
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.lightGray);
-  doc.text(`${count} screenshot${count !== 1 ? 's' : ''}`, cx, cy + 14, { align: 'center' });
+  doc.text(\\\\ screenshot\\\\, cx, cy + 14, { align: 'center' });
 }
 
 export async function generateFullPDF(allData) {
@@ -114,13 +121,16 @@ export async function generateFullPDF(allData) {
         if (snap.note && snap.note.trim()) {
            allNotesForSubject.push(snap.note.trim());
         }
-        
+
+        // Force 2 images per page: scale width to 135mm (height ~76mm).
+        // 2 * (76 + 20) = 192 < 297, so 2 will easily fit.
         const imgW = 125;
-        const imgH = Math.round(imgW * 9 / 16); // ~70mm
+        const imgH = Math.round(imgW * 9 / 16); // 70mm
         const imgX = ML + (CONTENT_W - imgW) / 2;
 
         checkPage(imgH + 25);
 
+        // Timestamp chip
         const timeStr = snap.time || '0:00';
         const chipW = 28;
         drawRect(doc, imgX, y, chipW, 7, [235, 228, 255]);
@@ -130,6 +140,7 @@ export async function generateFullPDF(allData) {
         doc.text(timeStr, imgX + chipW / 2, y + 5, { align: 'center' });
         y += 9;
 
+        // Image
         if (snap.image) {
           try {
             doc.addImage(snap.image, 'JPEG', imgX, y, imgW, imgH, undefined, 'FAST');
@@ -139,6 +150,7 @@ export async function generateFullPDF(allData) {
         }
         y += imgH + 6;
 
+        // Notes directly under image
         if (snap.note && snap.note.trim()) {
            const noteLines = doc.splitTextToSize(snap.note.trim(), CONTENT_W - 10);
            
@@ -166,23 +178,25 @@ export async function generateFullPDF(allData) {
            y += 8; 
         }
       }
+      
       y += 8; 
     } 
 
+    // ALL VIDEOS IN SUBJECT FINISHED. Now print ONE final AI Summary for ALL notes.
     if (apiKey && allNotesForSubject.length > 0) {
       try {
           const combinedTitles = Array.from(videoTitlesForSubject).join(', ');
           const summary = await generateAISummary(allNotesForSubject, combinedTitles);
           
           if (summary) {
-             doc.addPage();
+             doc.addPage(); // Force summary on its own clean final page(s)
              y = MT;
              const textLines = doc.splitTextToSize(summary, CONTENT_W - 8);
              
              doc.setFontSize(14);
              doc.setFont('helvetica', 'bold');
              doc.setTextColor(...C.purple);
-             doc.text(`AI Summary — ${subject}`, ML, y + 6);
+             doc.text(\\\AI Summary — \\\\, ML, y + 6);
              y += 14;
              
              doc.setFontSize(10);
@@ -202,7 +216,7 @@ export async function generateFullPDF(allData) {
   }
 
   const date = new Date().toISOString().slice(0, 10);
-  doc.save(`Study_Notes_${date}.pdf`);
+  doc.save(\\\Study_Notes_\.pdf\\\);
 }
 
 export async function generateAISummary(notes, videoTitle) {
@@ -213,11 +227,11 @@ export async function generateAISummary(notes, videoTitle) {
   const model = stored.openai_model || 'llama-3.3-70b-versatile';
   if (!apiKey) throw new Error('NO_API_KEY');
 
-  const text = Array.isArray(notes) ? notes.join('\n') : notes;
+  const text = Array.isArray(notes) ? notes.join('\\n') : notes;
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': \\\Bearer \\\\,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -225,7 +239,7 @@ export async function generateAISummary(notes, videoTitle) {
       messages: [
         {
           role: 'system',
-          content: `You are a study assistant. Summarize these combined notes extending across the subject consisting of videos (${videoTitle}). Produce structured bullet points with clear headings covering all key topics. Be concise and educational.`
+          content: \\\You are a study assistant. Summarize these combined notes extending across the subject consisting of videos (\). Produce structured bullet points with clear headings covering all key topics. Be concise and educational.\\\
         },
         { role: 'user', content: text }
       ],
@@ -235,7 +249,7 @@ export async function generateAISummary(notes, videoTitle) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(`Groq API Error: ${err.error?.message || response.statusText}`);
+    throw new Error(\\\Groq API Error: \\\\);
   }
 
   const data = await response.json();
@@ -245,3 +259,6 @@ export async function generateAISummary(notes, videoTitle) {
 export function exportToPDF(data) {
   return generateFullPDF(data);
 }
+\
+
+fs.writeFileSync('src/export/pdfExport.js', code);

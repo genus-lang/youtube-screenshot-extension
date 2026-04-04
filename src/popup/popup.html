@@ -17,12 +17,13 @@
         <span class="popup-logo">📸</span>
         <div>
           <h1 class="popup-title">Screenshot Notes</h1>
-          <p class="popup-subtitle">YouTube Study Tool</p>
+          <p class="popup-subtitle">By LazyRAR Tech Company</p>
         </div>
       </div>
       <button id="btn-settings" class="icon-btn" title="Settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
@@ -85,14 +86,20 @@
 
     <!-- Action Buttons -->
     <div class="actions">
-      <button id="btn-generate-pdf" class="btn btn-primary">
+      <button id="btn-generate-pdf" class="btn btn-primary" style="flex: 1;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         <span>Generate PDF</span>
       </button>
-      <button id="btn-export-onenote" class="btn" style="background: linear-gradient(135deg, #7719aa, #9b59b6); color: white; border: none; flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; transition: opacity 0.2s; padding: 10px 14px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        <span>To OneNote</span>
-      </button>
+      
+      <div style="display: flex; flex: 1; gap: 4px;">
+        <button id="btn-export-onenote" class="btn" style="background: linear-gradient(135deg, #7719aa, #9b59b6); color: white; border: none; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; transition: opacity 0.2s; padding: 10px 14px; white-space: nowrap;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>To OneNote</span>
+        </button>
+        <button id="btn-open-onenote" class="btn hidden" title="Open in OneNote" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: white; border: none; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; padding: 8px; flex-shrink: 0; width: 36px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </button>
+      </div>
     </div>
     <div class="actions" style="margin-top: 10px;">
       <button id="btn-clear-data" class="btn btn-danger-ghost" style="flex: 1;">
@@ -114,6 +121,14 @@
           <button id="confirm-delete" class="btn btn-danger-sm">Delete Everything</button>
         </div>
       </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: 16px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
+      <a href="https://ko-fi.com/" target="_blank" style="color: #a78bfa; text-decoration: none; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.884 13.19c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z"/></svg>
+        Support LazyRAR Tech
+      </a>
     </div>
 
   </div>

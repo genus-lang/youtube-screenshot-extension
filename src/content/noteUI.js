@@ -61,6 +61,7 @@ function injectNoteUI() {
 
       <!-- Actions -->
       <div class="yt-modal-footer">
+        <a href="https://ko-fi.com/" target="_blank" style="color: #a78bfa; font-size: 13px; text-decoration: none; font-weight: 500; margin-right: auto;">♥ Support LazyRAR Tech</a>
         <button id="yt-modal-skip" class="yt-modal-btn yt-modal-btn-ghost">Skip Note</button>
         <button id="yt-modal-save" class="yt-modal-btn yt-modal-btn-primary">
           <span>Save</span>
@@ -143,6 +144,10 @@ export function showNoteUI(frameData, timestamp, wasPlaying) {
 
   // --- Save handler ---
   const doSave = (noteText) => {
+    if (!chrome || !chrome.storage || !chrome.storage.local) {
+      alert("Extension updated! Please refresh the page to save notes.");
+      return;
+    }
     const { videoId, videoTitle } = getVideoMeta();
     // Read active subject first, then save with one message
     chrome.storage.local.get(['active_subject'], (res) => {
@@ -184,12 +189,10 @@ export function showNoteUI(frameData, timestamp, wasPlaying) {
 
     try {
       // Route OCR to background worker — bypasses YouTube's strict CSP
-      const result = await new Promise((resolve) => {
-        chrome.runtime.sendMessage(
-          { action: 'EXTRACT_OCR', payload: { imageDataUrl: frameData } },
-          resolve
-        );
-      });
+      const m = await import('./ocrEngine.js');
+        let textValue = '';
+        try { textValue = await m.extractText(frameData); } catch(e) { console.error(e); }
+        const result = { success: !!textValue, text: textValue };
 
       if (result && result.success && result.text && result.text.length > 0) {
         const existing = noteField.value.trim();

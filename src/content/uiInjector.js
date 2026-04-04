@@ -17,6 +17,12 @@ async function handleScreenshotClick(e) {
   const video = getVideoElement();
   if (!video) return;
 
+  // Prevent crash if extension was reloaded but page wasn't refreshed
+  if (!chrome || !chrome.storage || !chrome.storage.local) {
+    alert("Extension updated! Please refresh the YouTube page to continue taking screenshots.");
+    return;
+  }
+
   // Check auto-pause preference (default: true)
   const prefs = await new Promise(resolve => {
     chrome.storage.local.get(['pref_autopause'], resolve);

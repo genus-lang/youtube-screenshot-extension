@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const recentList      = document.getElementById('recent-list');
   const btnGeneratePDF  = document.getElementById('btn-generate-pdf');
   const btnExportOneNote= document.getElementById('btn-export-onenote');
+  const btnOpenOneNote  = document.getElementById('btn-open-onenote');
   const btnClearData    = document.getElementById('btn-clear-data');
   const btnSettings     = document.getElementById('btn-settings');
   const confirmOverlay  = document.getElementById('confirm-overlay');
@@ -137,6 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnExportOneNote.disabled = true;
     const oldHtml = btnExportOneNote.innerHTML;
     btnExportOneNote.innerHTML = '<span class="spinner"></span> Syncing...';
+    if(btnOpenOneNote) btnOpenOneNote.classList.add('hidden');
     showToast('info', '☁️ Uploading to Microsoft OneNote...');
 
     try {
@@ -145,9 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Auto-open the exact note in a new tab so the user never has to search for it!
       if (resp && resp.links && resp.links.oneNoteWebUrl) {
-        setTimeout(() => {
-          chrome.tabs.create({ url: resp.links.oneNoteWebUrl.href });
-        }, 1500);
+        if(btnOpenOneNote) { btnOpenOneNote.classList.remove('hidden'); btnOpenOneNote.onclick = () => chrome.tabs.create({ url: resp.links.oneNoteWebUrl.href }); }
       }
     } catch (err) {
       console.error('OneNote export failed:', err);
@@ -196,52 +196,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // =====================
-  // Auto Mode Toggle
+  // Auto Mode Toggle (Coming Soon)
   // =====================
   const btnToggleAuto  = document.getElementById('btn-toggle-auto');
   const autoBtnText    = document.getElementById('auto-btn-text');
 
-  // Query the current auto mode state from the content script
-  getActiveYouTubeTab((tab) => {
-    if (tab) {
-      chrome.tabs.sendMessage(tab.id, { action: 'GET_AUTO_STATUS' }, (response) => {
-        if (chrome.runtime.lastError || !response) return;
-        updateAutoButton(response.autoMode);
-      });
-    }
-  });
-
   btnToggleAuto.addEventListener('click', () => {
-    getActiveYouTubeTab((tab) => {
-      if (!tab) {
-        showToast('error', '❌ Open a YouTube video first!');
-        return;
-      }
-
-      chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_AUTO_MODE' }, (response) => {
-        if (chrome.runtime.lastError) {
-          showToast('error', '❌ Could not reach the page. Refresh YouTube and try again.');
-          return;
-        }
-        if (response) {
-          updateAutoButton(response.autoMode);
-          showToast('success', response.autoMode
-            ? '🟢 Auto mode enabled — slide changes will be captured!'
-            : '⚫ Auto mode disabled');
-        }
-      });
-    });
+    alert('🚀 Smart Auto Mode is coming soon! Stay tuned.');
   });
-
-  function updateAutoButton(isActive) {
-    if (isActive) {
-      btnToggleAuto.classList.add('active');
-      autoBtnText.textContent = 'Disable';
-    } else {
-      btnToggleAuto.classList.remove('active');
-      autoBtnText.textContent = 'Enable';
-    }
-  }
 
   // =====================
   // Subject Selector

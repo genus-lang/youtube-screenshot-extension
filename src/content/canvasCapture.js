@@ -25,6 +25,10 @@ export function captureFrame(video, quality = 0.9) {
  * Falls back to 0.9 if no preference is set.
  */
 export function captureFrameWithPreference(video) {
+  if (!chrome || !chrome.storage || !chrome.storage.local) {
+    alert("Extension updated! Please refresh the page to capture screenshots.");
+    return Promise.resolve(null);
+  }
   return new Promise((resolve) => {
     chrome.storage.local.get(['pref_quality'], (data) => {
       const quality = parseFloat(data.pref_quality) || 0.9;
