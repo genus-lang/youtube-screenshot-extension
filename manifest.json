@@ -3,8 +3,18 @@
   "name": "YouTube Screenshot Notes",
   "version": "1.0",
   "description": "Smart screenshot notes tool",
-  "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting", "alarms", "tabs", "identity"],
-  "host_permissions": ["https://www.youtube.com/*"],
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "scripting",
+    "alarms",
+    "tabs",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ],
   "background": {
     "service_worker": "src/background/background.js"
   },
@@ -12,10 +22,17 @@
     "default_popup": "src/popup/popup.html"
   },
   "options_page": "src/options/options.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/content/content.js"]
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/content/content.js"
+      ]
     }
   ],
   "icons": {
@@ -26,11 +43,14 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "public/tesseract/worker.min.js", 
+        "public/tesseract/worker.min.js",
         "public/tesseract/tesseract-core.wasm.js",
+        "public/blazeface/*",
         "src/content/ocrFrame.html"
       ],
-      "matches": ["https://www.youtube.com/*"]
+      "matches": [
+        "https://www.youtube.com/*"
+      ]
     }
   ]
 }
