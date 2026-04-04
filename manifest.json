@@ -6,8 +6,6 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "activeTab",
-    "scripting",
     "alarms",
     "tabs",
     "identity"
