@@ -472,19 +472,5 @@ body {
 @keyframes auto-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.4; }
-}
-. h i d d e n   {   d i s p l a y :   n o n e   ! i m p o r t a n t ;   } 
- 
- 
-
-
-
-
-.hidden {
-  display: none !important;
-}
-
-
-.hidden {
-  display: none !important;
-}
+} 
+.hidden { display: none !important; }

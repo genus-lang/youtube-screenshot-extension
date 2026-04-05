@@ -41,10 +41,47 @@ function drawSubjectCover(doc, subject, count) {
   doc.text(`${count} screenshot${count !== 1 ? 's' : ''}`, cx, cy + 14, { align: 'center' });
 }
 
-export async function generateFullPDF(allData) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+export async function generateFullPDF(allData, options = {}) {
+  if (options.mode === 'images') {
+    // Exact layout like Maths.pdf (1280x720 pts, 1 image per page)
+    const doc = new jsPDF({ unit: 'pt', format: [1280, 720], orientation: 'landscape' });
 
-  const stored = await new Promise(res =>
+    let isFirst = true;
+    for (const [key, video] of Object.entries(allData)) {
+      if (!video.screenshots) continue;
+      
+      for (const snap of video.screenshots) {
+        if (!isFirst) {
+          doc.addPage([1280, 720], 'landscape');
+        }
+        isFirst = false;
+
+        if (snap.image) {
+          try {
+            doc.addImage(snap.image, 'JPEG', 0, 0, 1280, 720, undefined, 'FAST');
+          } catch (e) {
+            doc.setFillColor(240, 240, 245);
+            doc.rect(0, 0, 1280, 720, 'F');
+          }
+        } else {
+             doc.setFillColor(240, 240, 245);
+             doc.rect(0, 0, 1280, 720, 'F');
+        }
+      }
+    }
+
+    if (isFirst) {
+      doc.setFontSize(24);
+      doc.text('No screenshots found.', 640, 360, { align: 'center' });
+    }
+
+    const date = new Date().toISOString().slice(0, 10);
+    const finalName = options.subject ? `${options.subject}.pdf` : `Screenshots_${date}.pdf`;
+    doc.save(finalName);
+    return;
+  }
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });const stored = await new Promise(res =>
     chrome.storage.local.get(['openai_api_key', 'openai_model'], res)
   );
   const apiKey = stored.openai_api_key;
@@ -115,20 +152,23 @@ export async function generateFullPDF(allData) {
            allNotesForSubject.push(snap.note.trim());
         }
         
-        const imgW = 125;
-        const imgH = Math.round(imgW * 9 / 16); // ~70mm
-        const imgX = ML + (CONTENT_W - imgW) / 2;
+                                const imgW = CONTENT_W;
+        const imgH = Math.round(imgW * 9 / 16); 
+        const imgX = ML;
 
-        checkPage(imgH + 25);
+        let initialY = y;
+        let noteLines = [];
+        let totalNeeded = imgH + 5; 
+
+        if (snap.note && snap.note.trim()) {
+           noteLines = doc.splitTextToSize(snap.note.trim(), CONTENT_W - 10);
+           totalNeeded += 20 + noteLines.length * 4.5;    
+        }
+
+        checkPage(totalNeeded);
 
         const timeStr = snap.time || '0:00';
         const chipW = 28;
-        drawRect(doc, imgX, y, chipW, 7, [235, 228, 255]);
-        doc.setFontSize(8.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...C.purple);
-        doc.text(timeStr, imgX + chipW / 2, y + 5, { align: 'center' });
-        y += 9;
 
         if (snap.image) {
           try {
@@ -137,33 +177,36 @@ export async function generateFullPDF(allData) {
             drawRect(doc, imgX, y, imgW, imgH, [240, 240, 245]);
           }
         }
-        y += imgH + 6;
+        
+        drawRect(doc, imgX + 6, y + 6, chipW, 6, [235, 228, 255]);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...C.purple);
+        doc.text(timeStr, imgX + 6 + chipW / 2, y + 10.2, { align: 'center' });      
 
         if (snap.note && snap.note.trim()) {
-           const noteLines = doc.splitTextToSize(snap.note.trim(), CONTENT_W - 10);
-           
-           checkPage(16);
-           drawRect(doc, ML, y, CONTENT_W, 6, C.noteBg);
+           let noteY = y + imgH + 6;
+
+           drawRect(doc, ML, noteY, CONTENT_W, 6, C.noteBg);      
            doc.setFillColor(...C.noteBrd);
-           doc.rect(ML, y, 1.5, 6, 'F');
+           doc.rect(ML, noteY, 1.5, 6, 'F');
            doc.setFontSize(7.5);
            doc.setFont('helvetica', 'bold');
            doc.setTextColor(...C.purple);
-           doc.text('Note / Extracted Text', ML + 4, y + 4.2);
-           y += 10;
+           doc.text('Note / Extracted Text', ML + 4, noteY + 4.2);
+           noteY += 10;
 
            doc.setFontSize(9.5);
            doc.setFont('helvetica', 'normal');
            doc.setTextColor(...C.darkText);
 
            for (const line of noteLines) {
-             checkPage(8);
-             doc.text(line, ML + 4, y);
-             y += 4.5;
+             doc.text(line, ML + 4, noteY);
+             noteY += 4.5;
            }
-           y += 6; 
+           y = noteY + 6;
         } else {
-           y += 8; 
+           y = y + imgH + 8;
         }
       }
       y += 8; 
@@ -202,7 +245,8 @@ export async function generateFullPDF(allData) {
   }
 
   const date = new Date().toISOString().slice(0, 10);
-  doc.save(`Study_Notes_${date}.pdf`);
+  const finalNameFull = options.subject ? `${options.subject}_Notes.pdf` : `Study_Notes_${date}.pdf`;
+  doc.save(finalNameFull);
 }
 
 export async function generateAISummary(notes, videoTitle) {

@@ -35,13 +35,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadStats();
   await loadSubjects();
 
-  async function loadStats() {
+    async function loadStats() {
     const data = await getAllData();
+    const activeSubject = await new Promise(res =>
+      chrome.storage.local.get(['active_subject'], d => res(d.active_subject || 'General'))
+    );
 
-    // Filter out non-video keys (settings keys like openai_api_key, pref_*, etc.)
-    const videoEntries = Object.entries(data).filter(([key, val]) => {
+    // Filter out non-video keys and only include screenshots for the active subject
+    let videoEntries = Object.entries(data).filter(([key, val]) => {
       return val && typeof val === 'object' && Array.isArray(val.screenshots);
     });
+
+    // Map to keep the original structure but filter screenshots by subject
+    videoEntries = videoEntries.map(([key, val]) => {
+      const filteredScreenshots = val.screenshots.filter(s => (s.subject || 'General') === activeSubject);
+      return [key, { ...val, screenshots: filteredScreenshots }];
+    }).filter(([, val]) => val.screenshots.length > 0);
 
     const videoCount = videoEntries.length;
     const screenshotCount = videoEntries.reduce((sum, [, v]) => sum + v.screenshots.length, 0);
@@ -103,35 +112,74 @@ document.addEventListener('DOMContentLoaded', async () => {
   // =====================
   // Generate PDF
   // =====================
-  btnGeneratePDF.addEventListener('click', async () => {
+    // PDF Dropdown toggle
+  const pdfMenu = document.getElementById('pdf-dropdown-menu');
+  let isPdfMenuOpen = false;
+
+  btnGeneratePDF.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!btnGeneratePDF.disabled) {
+       pdfMenu.classList.toggle('hidden');
+       isPdfMenuOpen = !isPdfMenuOpen;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (isPdfMenuOpen && !btnGeneratePDF.contains(e.target) && !pdfMenu.contains(e.target)) {
+      pdfMenu.classList.add('hidden');
+      isPdfMenuOpen = false;
+    }
+  });
+
+  const handlePDFGenerate = async (mode) => {
+    pdfMenu.classList.add('hidden');
+    isPdfMenuOpen = false;
     btnGeneratePDF.disabled = true;
     btnGeneratePDF.innerHTML = '<span class="spinner"></span> Generating...';
-    showToast('info', '📄 Generating your PDF...');
+    showToast('info', '⏳ Generating your PDF...');
 
     try {
       const data = await getAllData();
-      // Filter to only video data
+      const activeSubject = await new Promise(res =>
+        chrome.storage.local.get(['active_subject'], d => res(d.active_subject || 'General'))
+      );
+
+      // Filter to only video data and only screenshots for the active subject
       const videoData = {};
       Object.entries(data).forEach(([key, val]) => {
         if (val && typeof val === 'object' && Array.isArray(val.screenshots)) {
-          videoData[key] = val;
+          const filteredScreenshots = val.screenshots.filter(s => (s.subject || 'General') === activeSubject);
+          if (filteredScreenshots.length > 0) {
+            videoData[key] = { ...val, screenshots: filteredScreenshots };
+          }
         }
       });
 
-      await generateFullPDF(videoData);
+      await generateFullPDF(videoData, { mode, subject: activeSubject });
       showToast('success', '✅ PDF downloaded successfully!');
     } catch (err) {
       console.error('PDF generation failed:', err);
       showToast('error', `❌ Failed: ${err.message}`);
     } finally {
       btnGeneratePDF.disabled = false;
-      btnGeneratePDF.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Generate PDF</span>`;
+      btnGeneratePDF.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Generate PDF</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><polyline points="6 9 12 15 18 9"></polyline></svg>';
     }
-  });
+  };
 
-  // =====================
+  const btnPdfFull = document.getElementById('btn-pdf-full');
+  const btnPdfImages = document.getElementById('btn-pdf-images');
+
+  if(btnPdfFull && btnPdfImages) {
+    btnPdfFull.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlePDFGenerate('full');
+    });
+    btnPdfImages.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlePDFGenerate('images');
+    });
+  }
+
   // Export OneNote
   // =====================
   btnExportOneNote.addEventListener('click', async () => {
@@ -226,8 +274,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     subjectSelector.value = active;
   }
 
-  subjectSelector.addEventListener('change', () => {
-    setActiveSubject(subjectSelector.value);
+  subjectSelector.addEventListener('change', async () => {
+    await setActiveSubject(subjectSelector.value);
+    await loadStats();
   });
 
   btnManageSubj.addEventListener('click', () => {

@@ -114,3 +114,13 @@ dist
 
 # Vite cache
 .vite
+# Ad-hoc patched files
+fix_*.js
+fix_*.py
+patch_*.js
+rewrite_*.js
+cl_*.js
+cl_*.py
+parse_*.py
+Maths.pdf
+temp_*
