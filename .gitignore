@@ -124,3 +124,9 @@ cl_*.py
 parse_*.py
 Maths.pdf
 temp_*
+
+# Additional logs and files
+*.zip
+*.txt
+patch*
+update_*
