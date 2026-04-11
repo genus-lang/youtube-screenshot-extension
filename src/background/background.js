@@ -13,8 +13,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ status: 'PONG' });
 
   } else if (request.action === 'SAVE_SCREENSHOT') {
-    const { videoId, videoTitle, frameData, timestamp, noteText, subject } = request.payload;
-    saveScreenshot(videoId, videoTitle, frameData, timestamp, noteText, subject)
+    const { videoId, videoTitle, frameData, timestamp, noteText, subject, audioData } = request.payload;
+    saveScreenshot(videoId, videoTitle, frameData, timestamp, noteText, subject, audioData)
       .then(() => sendResponse({ success: true }))
       .catch((err) => sendResponse({ success: false, error: err.message }));
     return true;

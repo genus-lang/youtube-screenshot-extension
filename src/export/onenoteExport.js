@@ -110,6 +110,14 @@ export async function exportToOneNote() {
             formData.append(imgId, blob, `${imgId}.jpg`);
           })
         );
+
+        if (hasAudio) {
+           imagePromises.push(
+             fetch(snap.audioData).then(r => r.blob()).then(blob => {
+               formData.append(audioId, blob, 'AudioNote.webm');
+             })
+           );
+        }
       }
 
       // AI Summary after all screenshots of this video
