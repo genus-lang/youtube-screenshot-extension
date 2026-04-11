@@ -29,7 +29,7 @@ function openDB() {
 
 // ─── Screenshots ────────────────────────────────────────────────────────────
 
-export async function saveScreenshot(videoId, videoTitle, dataUrl, timestamp, note, subject) {
+export async function saveScreenshot(videoId, videoTitle, dataUrl, timestamp, note, subject, audioData) {
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -43,6 +43,7 @@ export async function saveScreenshot(videoId, videoTitle, dataUrl, timestamp, no
         time: timestamp,
         note: note || '',
         subject: subject || 'General',
+        audioData: audioData || null,
         savedAt: Date.now()
       });
       store.put(videoData);
