@@ -330,3 +330,54 @@ function getActiveYouTubeTab(callback) {
     callback(ytTab || null);
   });
 }
+
+
+// --- Feedback System ---
+const feedbackBtnBtn = document.getElementById('btn-feedback-floating');
+const feedbackModal = document.getElementById('feedback-modal');
+const btnCancelFeedback = document.getElementById('btn-cancel-feedback');
+const btnSendFeedback = document.getElementById('btn-send-feedback');
+
+if (feedbackBtnBtn && feedbackModal) {
+  feedbackBtnBtn.addEventListener('click', () => {
+    feedbackModal.classList.remove('hidden');
+  });
+
+  btnCancelFeedback.addEventListener('click', () => {
+    feedbackModal.classList.add('hidden');
+  });
+
+  btnSendFeedback.addEventListener('click', () => {
+    const email = document.getElementById('feedback-email').value;
+    const message = document.getElementById('feedback-message').value;
+
+    if (!message.trim()) {
+      alert('Please enter a message.');
+      return;
+    }
+
+    // 1. Save to DB (chrome.storage.local)
+    chrome.storage.local.get(['feedbacks'], (res) => {
+      const allFeedbacks = res.feedbacks || [];
+      allFeedbacks.push({ email, message, date: new Date().toISOString() });
+      chrome.storage.local.set({ feedbacks: allFeedbacks }, () => {
+        
+        // 2. Mail System
+        // Change the below email to your actual Developer Mail ID
+        const DEV_EMAIL = "info.lazyar@gmail.com";
+        const subject = encodeURIComponent("Extension Feedback");
+        const body = encodeURIComponent(`From: ${email || 'Anonymous'}\n\nMessage:\n${message}`);
+        
+        // Opens default mail client (Gmail, Outlook, etc)
+        // Open Gmail Composition directly via web intent instead of mailto: OS default
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${DEV_EMAIL}&su=${subject}&body=${body}`;
+        window.open(gmailUrl, '_blank');
+        
+        // Close modal and reset
+        document.getElementById('feedback-message').value = '';
+        feedbackModal.classList.add('hidden');
+        alert("Feedback saved locally and mail client opened!");
+      });
+    });
+  });
+}
