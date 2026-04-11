@@ -12,7 +12,8 @@ async function getWorker() {
   _initPromise = (async () => {
     console.log('[OCR Frame] Initializing internal Tesseract worker...');
     // We are on extension origin, so Blob and native Worker paths work flawlessly!
-    const worker = await createWorker('eng', 1, { workerPath: chrome.runtime.getURL('public/tesseract/worker.min.js'), corePath: chrome.runtime.getURL('public/tesseract/tesseract-core.wasm.js'),
+    const worker = await createWorker('eng', 1, { workerBlobURL: false,
+      workerPath: chrome.runtime.getURL('public/tesseract/worker.min.js'), corePath: chrome.runtime.getURL('public/tesseract/tesseract-core.wasm.js'),
       logger: (m) => {
         if (m.status === 'recognizing text') {
           // Send progress back to parent window
