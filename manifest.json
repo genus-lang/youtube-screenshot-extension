@@ -11,7 +11,9 @@
     "identity"
   ],
   "host_permissions": [
-    "https://www.youtube.com/*"
+    "https://www.youtube.com/*",
+    "https://api.groq.com/*",
+    "https://graph.microsoft.com/*"
   ],
   "background": {
     "service_worker": "src/background/background.js"
